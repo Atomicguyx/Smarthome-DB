@@ -103,7 +103,158 @@
                         </div>
                     </div>
                 </div>
+<!-- Add this AFTER the Dashboard page and BEFORE the closing </main> tag -->
+<!-- Analytics Page -->
+<div id="analyticsPage" class="page">
+    <div class="page-header">
+        <h2><i class="fas fa-chart-line"></i> System Analytics</h2>
+        <p>Usage statistics and performance metrics</p>
+    </div>
+    
+    <div class="analytics-grid">
+        <div class="analytics-card glass">
+            <h3><i class="fas fa-bolt"></i> Power Consumption</h3>
+            <div class="chart-placeholder">
+                <div class="chart-bar" style="height: 70%;"></div>
+                <div class="chart-bar" style="height: 50%;"></div>
+                <div class="chart-bar" style="height: 80%;"></div>
+                <div class="chart-bar" style="height: 40%;"></div>
+                <div class="chart-bar" style="height: 60%;"></div>
+            </div>
+            <div class="analytics-stats">
+                <div class="stat">
+                    <span class="stat-label">Today</span>
+                    <span class="stat-value">2.4 kWh</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">This Month</span>
+                    <span class="stat-value">45.6 kWh</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analytics-card glass">
+            <h3><i class="fas fa-history"></i> Usage History</h3>
+            <div class="history-list" id="usageHistory">
+                <div class="history-item">
+                    <span class="time">10:30 AM</span>
+                    <span class="action">All relays OFF</span>
+                </div>
+                <div class="history-item">
+                    <span class="time">10:15 AM</span>
+                    <span class="action">Bedrooms group ON</span>
+                </div>
+                <div class="history-item">
+                    <span class="time">09:45 AM</span>
+                    <span class="action">Relay 1-8 ON</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="analytics-card glass">
+            <h3><i class="fas fa-network-wired"></i> System Status</h3>
+            <div class="status-list">
+                <div class="status-item">
+                    <span class="label">MQTT Connection</span>
+                    <span class="value status-good">Connected</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">WiFi Signal</span>
+                    <span class="value status-good">Excellent</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Uptime</span>
+                    <span class="value" id="systemUptime">00:00:00</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Memory Usage</span>
+                    <span class="value">42%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
+<!-- Settings Page -->
+<div id="settingsPage" class="page">
+    <div class="page-header">
+        <h2><i class="fas fa-cog"></i> Settings</h2>
+        <p>Configure your system preferences</p>
+    </div>
+    
+    <div class="settings-grid">
+        <div class="settings-card glass">
+            <h3><i class="fas fa-wifi"></i> MQTT Configuration</h3>
+            <div class="form-group">
+                <label for="mqttServer">Server URL</label>
+                <input type="text" id="mqttServer" value="wss://0562d333a1f84c1d8fa9a674afa05d6d.s1.eu.hivemq.cloud:8884/mqtt">
+            </div>
+            <div class="form-group">
+                <label for="mqttUsername">Username</label>
+                <input type="text" id="mqttUsername" value="SMARTHOMEDB">
+            </div>
+            <div class="form-group">
+                <label for="mqttPassword">Password</label>
+                <input type="password" id="mqttPassword" value="Aa1234567@">
+            </div>
+            <div class="form-group">
+                <label for="mqttClientId">Client ID</label>
+                <input type="text" id="mqttClientId" value="smart-home-dashboard">
+            </div>
+            <button class="btn-save" id="btnSaveMQTT">Save MQTT Settings</button>
+        </div>
+        
+        <div class="settings-card glass">
+            <h3><i class="fas fa-palette"></i> Appearance</h3>
+            <div class="form-group">
+                <label for="themeSelect">Theme</label>
+                <select id="themeSelect">
+                    <option value="dark">Dark (Default)</option>
+                    <option value="light">Light</option>
+                    <option value="auto">Auto (System)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="animationToggle">
+                    <input type="checkbox" id="animationToggle" checked>
+                    Enable Animations
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="notificationsToggle">
+                    <input type="checkbox" id="notificationsToggle" checked>
+                    Enable Notifications
+                </label>
+            </div>
+            <button class="btn-save" id="btnSaveAppearance">Save Appearance</button>
+        </div>
+        
+        <div class="settings-card glass">
+            <h3><i class="fas fa-shield-alt"></i> Security</h3>
+            <div class="form-group">
+                <label for="sessionTimeout">Session Timeout (minutes)</label>
+                <input type="number" id="sessionTimeout" value="30" min="5" max="240">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="requireAuth" checked>
+                    Require Authentication
+                </label>
+            </div>
+            <button class="btn-save" id="btnSaveSecurity">Save Security</button>
+        </div>
+        
+        <div class="settings-card glass">
+            <h3><i class="fas fa-database"></i> Data Management</h3>
+            <div class="form-group">
+                <label for="logRetention">Log Retention (days)</label>
+                <input type="number" id="logRetention" value="30" min="1" max="365">
+            </div>
+            <button class="btn-danger" id="btnClearData">Clear All Data</button>
+            <button class="btn-warning" id="btnExportData">Export Configuration</button>
+        </div>
+    </div>
+</div>
                 <!-- Quick Actions -->
                 <section class="quick-actions-section">
                     <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
@@ -664,5 +815,6 @@
 </body>
 
 </html>
+
 
 
