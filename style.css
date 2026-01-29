@@ -1,3 +1,185 @@
+/* ================= MOBILE RESPONSIVENESS ================= */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    
+    /* Sidebar - Mobile Version */
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        height: 60px;
+        z-index: 1000;
+        flex-direction: row;
+        padding: 0;
+        background: hsl(var(--card-bg) / 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid hsl(var(--border));
+        border-right: none;
+    }
+    
+    .sidebar-header {
+        display: none;
+    }
+    
+    .sidebar-nav {
+        flex-direction: row;
+        justify-content: space-around;
+        width: 100%;
+        padding: 0 10px;
+    }
+    
+    .nav-item {
+        flex-direction: column;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        min-width: auto;
+    }
+    
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-right: 0;
+        margin-bottom: 4px;
+    }
+    
+    .nav-item span {
+        display: block;
+    }
+    
+    .sidebar-footer {
+        display: none;
+    }
+    
+    /* Main Content */
+    .main-content {
+        margin-left: 0;
+        margin-bottom: 60px; /* Space for bottom navbar */
+    }
+    
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    /* Quick Actions */
+    .quick-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .quick-btn {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+    
+    /* Relays Grid */
+    .relays-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .relay-card {
+        padding: 15px;
+    }
+    
+    /* Analytics Grid */
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Modal */
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    /* Schedule Modal */
+    #scheduleModal .modal-content {
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    /* Hide some elements on mobile */
+    .breadcrumb {
+        display: none;
+    }
+    
+    .device-info {
+        display: none;
+    }
+    
+    /* Mobile menu toggle button */
+    .mobile-menu-toggle {
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        background: hsl(var(--primary));
+        color: white;
+        border: none;
+        border-radius: 8px;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: var(--shadow-lg);
+    }
+}
+
+@media (max-width: 480px) {
+    .relays-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .relay-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn-relay {
+        width: 100%;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .section-stats {
+        align-self: stretch;
+        justify-content: space-between;
+    }
+    
+    /* Smaller text on very small screens */
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.2rem; }
+    .stat-value { font-size: 1rem; }
+}
 @layer base {
   :root {
     --background: 222 47% 6%;
@@ -1679,4 +1861,5 @@ select[multiple] option:checked {
     justify-content: space-between;
   }
 }
+
 
