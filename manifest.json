@@ -19,7 +19,10 @@
       "type": "image/png"
     }
   ],
-  "categories": ["productivity", "utilities"],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
   "screenshots": [
     {
       "src": "IMG-20250608-WA0028.jpg",
@@ -27,6 +30,4 @@
       "type": "image/png"
     }
   ]
-
 }
-
