@@ -1,135 +1,665 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏠 Smart Home - 16 Relays</title>
-    <meta name="theme-color" content="#2196F3">
+    <title>Atomic Smart DB</title>
+    <meta name="theme-color" content="hsl(222 47% 6%)">
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <i class="fas fa-home"></i>
-                <h1>Smart Home Control</h1>
-                <span class="badge">16 Relays</span>
-            </div>
-            <div class="header-right">
-                <div class="connection-status" id="connectionStatus">
-                    <div class="status-indicator" id="statusIndicator"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-bolt"></i>
+                    <h1>Atomic DB</h1>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
                     <span id="statusText">Connecting...</span>
                 </div>
-                <div class="header-actions">
-                    <button class="btn-icon" id="btnRefresh" title="Refresh">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                    <button class="btn-icon" id="btnSettings" title="Settings">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
             </div>
-        </header>
 
-        <!-- Quick Actions -->
-        <section class="quick-actions-section">
-            <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
-            <div class="quick-actions-grid">
-                <button class="quick-btn success" id="btnAllOn">
-                    <i class="fas fa-play-circle"></i>
-                    <span>ALL ON</span>
-                </button>
-                <button class="quick-btn danger" id="btnAllOff">
-                    <i class="fas fa-stop-circle"></i>
-                    <span>ALL OFF</span>
-                </button>
-                <button class="quick-btn primary" id="btnGroupLiving">
-                    <i class="fas fa-couch"></i>
-                    <span>Living Room</span>
-                </button>
-                <button class="quick-btn primary" id="btnGroupBedrooms">
-                    <i class="fas fa-bed"></i>
-                    <span>Bedrooms</span>
-                </button>
-                <button class="quick-btn primary" id="btnGroupOutdoor">
-                    <i class="fas fa-tree"></i>
-                    <span>Outdoor</span>
-                </button>
-                <button class="quick-btn warning" id="btnRange1_8">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Relays 1-8</span>
-                </button>
-                <button class="quick-btn warning" id="btnRange9_16">
-                    <i class="fas fa-layer-group"></i>
-                    <span>Relays 9-16</span>
-                </button>
-            </div>
-        </section>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#controls" class="nav-item" data-page="controls">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Controls</span>
+                </a>
+                <a href="#analytics" class="nav-item" data-page="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
 
-        <!-- Relays Grid -->
-        <section class="relays-section">
-            <div class="section-header">
-                <h2><i class="fas fa-sliders-h"></i> Individual Control</h2>
-                <div class="stats">
-                    <span class="stat" id="statOn">0 ON</span>
-                    <span class="stat" id="statOff">16 OFF</span>
-                </div>
-            </div>
-            
-            <div class="relays-grid" id="relaysGrid">
-                <!-- Generated by JavaScript -->
-            </div>
-        </section>
-
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-content">
+            <div class="sidebar-footer">
                 <div class="device-info">
                     <i class="fas fa-microchip"></i>
-                    <span>ESP32 • 16 Relays • HiveMQ Cloud</span>
-                </div>
-                <div class="connection-info">
-                    <i class="fas fa-satellite-dish"></i>
-                    <span id="lastUpdate">Last: --:--:--</span>
+                    <div>
+                        <div class="device-name">ESP32 Controller</div>
+                        <div class="device-stats" id="deviceStats">16 Relays • 0 ON</div>
+                    </div>
                 </div>
             </div>
-        </footer>
+        </aside>
 
-        <!-- Toast -->
-        <div id="toast" class="toast"></div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h2 id="pageTitle">Smart Home Dashboard</h2>
+                    <div class="breadcrumb" id="breadcrumb">Controls / All Relays</div>
+                </div>
+                <div class="header-right">
+                    <div class="quick-actions">
+                        <button class="btn-icon glow-accent" id="btnRefresh" title="Refresh">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <button class="btn-icon glow-accent" id="btnSettingsModal" title="Settings">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button class="btn-icon glow-accent" id="btnFullscreen" title="Fullscreen">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                    <div class="time-display" id="timeDisplay">--:--:--</div>
+                </div>
+            </header>
 
-        <!-- Settings Modal -->
+            <!-- Dashboard Page (Default) -->
+            <div id="dashboardPage" class="page active">
+                <!-- Connection Status -->
+                <div class="connection-card glass">
+                    <div class="connection-info">
+                        <div class="connection-icon">
+                            <i class="fas fa-satellite-dish"></i>
+                        </div>
+                        <div class="connection-details">
+                            <h3>HiveMQ Cloud</h3>
+                            <p id="connectionDetails">Establishing secure connection...</p>
+                        </div>
+                        <div class="connection-stats">
+                            <div class="stat">
+                                <span class="stat-label">Uptime</span>
+                                <span class="stat-value" id="uptime">00:00:00</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">Messages</span>
+                                <span class="stat-value" id="messageCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <section class="quick-actions-section">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    <div class="quick-grid">
+                        <button class="quick-btn success" id="btnAllOn">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Power All ON</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="quick-btn destructive" id="btnAllOff">
+                            <i class="fas fa-stop-circle"></i>
+                            <span>Power All OFF</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="quick-btn primary" id="btnGroupBedrooms">
+                            <i class="fas fa-bed"></i>
+                            <span>Bedrooms Group</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="quick-btn primary" id="btnGroupEssentials">
+                            <i class="fas fa-fire"></i>
+                            <span>Essentials</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="quick-btn warning" id="btnRange1_8">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Relays 1-8</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                        <button class="quick-btn warning" id="btnRange9_16">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Relays 9-16</span>
+                            <div class="btn-glow"></div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Relays Grid -->
+                <section class="relays-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-sliders-h"></i> Relay Controls</h3>
+                        <div class="section-stats">
+                            <div class="stat-badge success" id="statOn">0 ON</div>
+                            <div class="stat-badge muted" id="statOff">16 OFF</div>
+                            <div class="stat-badge primary" id="statTotal">16 Total</div>
+                        </div>
+                    </div>
+                    
+                    <div class="relays-grid" id="relaysGrid">
+                        <!-- Generated by JavaScript -->
+                    </div>
+                </section>
+
+                <!-- Activity Log -->
+                <section class="log-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-terminal"></i> Activity Log</h3>
+                        <button class="btn-icon" id="btnClearLog">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="log-container glass">
+                        <div id="activityLog"></div>
+                    </div>
+                </section>
+            </div>
+<!-- Controls Page -->
+<div id="controlsPage" class="page">
+    <div class="page-header">
+        <h2><i class="fas fa-sliders-h"></i> Advanced Controls</h2>
+        <p>Fine-tuned control over all 16 relays with preset modes</p>
+    </div>
+    
+    <!-- Quick Presets -->
+    <section class="presets-section">
+        <div class="section-header">
+            <h3><i class="fas fa-save"></i> Quick Presets</h3>
+            <div class="section-actions">
+                <button class="btn-icon" id="btnCreatePreset" title="Save Current as Preset">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="btn-icon" id="btnDeletePreset" title="Delete Preset">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="presets-grid">
+            <!-- Generated by JavaScript -->
+        </div>
+    </section>
+    
+    <!-- Individual Relay Controls -->
+    <section class="relays-section">
+        <div class="section-header">
+            <h3><i class="fas fa-microchip"></i> Individual Relay Control</h3>
+            <div class="section-stats">
+                <div class="stat-badge success" id="controlsStatOn">0 ON</div>
+                <div class="stat-badge muted" id="controlsStatOff">16 OFF</div>
+            </div>
+        </div>
+        
+        <div class="advanced-grid" id="advancedControlsGrid">
+            <!-- Generated by JavaScript -->
+        </div>
+    </section>
+    
+<!-- Schedule Section -->
+<section class="schedule-section">
+    <div class="section-header">
+        <h3><i class="fas fa-clock"></i> Schedule Presets</h3>
+        <button class="btn-primary" id="btnAddSchedule" onclick="openScheduleModal()">
+            <i class="fas fa-plus"></i> Add Schedule
+        </button>
+    </div>
+    
+    <div class="schedule-list" id="scheduleList">
+        <!-- Schedules will be loaded here -->
+    </div>
+</section>
+
+<!-- Schedule Modal -->
+<div id="scheduleModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-clock"></i> Add New Schedule</h3>
+            <button class="btn-close" onclick="closeScheduleModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="scheduleName">Schedule Name</label>
+                <input type="text" id="scheduleName" placeholder="e.g., Morning Routine" value="Morning Routine">
+            </div>
+            
+            <div class="form-group">
+                <label for="scheduleTime">Time</label>
+                <input type="time" id="scheduleTime" value="06:00">
+            </div>
+            
+            <div class="form-group">
+                <label for="schedulePreset">Preset</label>
+                <select id="schedulePreset">
+                    <option value="home">Home Mode</option>
+                    <option value="away">Away Mode</option>
+                    <option value="night">Night Mode</option>
+                    <option value="energy">Energy Save</option>
+                    <option value="party">Party Mode</option>
+                    <option value="morning">Morning Routine</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="scheduleRepeat">Repeat</label>
+                <select id="scheduleRepeat" multiple>
+                    <option value="mon">Monday</option>
+                    <option value="tue">Tuesday</option>
+                    <option value="wed">Wednesday</option>
+                    <option value="thu">Thursday</option>
+                    <option value="fri">Friday</option>
+                    <option value="sat">Saturday</option>
+                    <option value="sun">Sunday</option>
+                </select>
+                <small class="form-hint">Hold Ctrl/Cmd to select multiple days</small>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="scheduleEnabled" checked>
+                    Enable Schedule
+                </label>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveSchedule()">Save Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+            <!-- Analytics Page -->
+            <div id="analyticsPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-chart-line"></i> System Analytics</h2>
+                    <p>Usage statistics and performance metrics</p>
+                </div>
+                
+                <div class="analytics-grid">
+                    <div class="analytics-card glass">
+                        <h3><i class="fas fa-bolt"></i> Power Consumption</h3>
+                        <div class="chart-placeholder">
+                            <div class="chart-bar" style="height: 70%; background: hsl(var(--primary));"></div>
+                            <div class="chart-bar" style="height: 50%; background: hsl(var(--primary));"></div>
+                            <div class="chart-bar" style="height: 80%; background: hsl(var(--primary));"></div>
+                            <div class="chart-bar" style="height: 40%; background: hsl(var(--primary));"></div>
+                            <div class="chart-bar" style="height: 60%; background: hsl(var(--primary));"></div>
+                        </div>
+                        <div class="analytics-stats">
+                            <div class="stat">
+                                <span class="stat-label">Today</span>
+                                <span class="stat-value">2.4 kWh</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">This Month</span>
+                                <span class="stat-value">45.6 kWh</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-card glass">
+                        <h3><i class="fas fa-history"></i> Usage History</h3>
+                        <div class="history-list" id="usageHistory">
+                            <div class="history-item">
+                                <span class="time">10:30 AM</span>
+                                <span class="action">All relays OFF</span>
+                            </div>
+                            <div class="history-item">
+                                <span class="time">10:15 AM</span>
+                                <span class="action">Bedrooms group ON</span>
+                            </div>
+                            <div class="history-item">
+                                <span class="time">09:45 AM</span>
+                                <span class="action">Relay 1-8 ON</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-card glass">
+                        <h3><i class="fas fa-network-wired"></i> System Status</h3>
+                        <div class="status-list">
+                            <div class="status-item">
+                                <span class="label">MQTT Connection</span>
+                                <span class="value status-good">Connected</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="label">WiFi Signal</span>
+                                <span class="value status-good">Excellent</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="label">Uptime</span>
+                                <span class="value" id="systemUptime">00:00:00</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="label">Memory Usage</span>
+                                <span class="value">42%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page">
+                <div class="page-header">
+                    <h2><i class="fas fa-cog"></i> Settings</h2>
+                    <p>Configure your system preferences</p>
+                </div>
+                
+                <div class="settings-grid">
+                    <div class="settings-card glass">
+                        <h3><i class="fas fa-wifi"></i> MQTT Configuration</h3>
+                        <div class="form-group">
+                            <label for="mqttServer">Server URL</label>
+                            <input type="text" id="mqttServer" value="wss://0562d333a1f84c1d8fa9a674afa05d6d.s1.eu.hivemq.cloud:8884/mqtt">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqttUsername">Username</label>
+                            <input type="text" id="mqttUsername" value="SMARTHOMEDB">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqttPassword">Password</label>
+                            <input type="password" id="mqttPassword" value="Aa1234567@">
+                        </div>
+                        <div class="form-group">
+                            <label for="mqttClientId">Client ID</label>
+                            <input type="text" id="mqttClientId" value="smart-home-dashboard">
+                        </div>
+                        <button class="btn-save" id="btnSaveMQTT">Save MQTT Settings</button>
+                    </div>
+                    
+                    <div class="settings-card glass">
+                        <h3><i class="fas fa-palette"></i> Appearance</h3>
+                        <div class="form-group">
+                            <label for="themeSelect">Theme</label>
+                            <select id="themeSelect">
+                                <option value="dark">Dark (Default)</option>
+                                <option value="light">Light</option>
+                                <option value="auto">Auto (System)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="animationToggle">
+                                <input type="checkbox" id="animationToggle" checked>
+                                Enable Animations
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="notificationsToggle">
+                                <input type="checkbox" id="notificationsToggle" checked>
+                                Enable Notifications
+                            </label>
+                        </div>
+                        <button class="btn-save" id="btnSaveAppearance">Save Appearance</button>
+                    </div>
+                    
+                    <div class="settings-card glass">
+                        <h3><i class="fas fa-shield-alt"></i> Security</h3>
+                        <div class="form-group">
+                            <label for="sessionTimeout">Session Timeout (minutes)</label>
+                            <input type="number" id="sessionTimeout" value="30" min="5" max="240">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="requireAuth" checked>
+                                Require Authentication
+                            </label>
+                        </div>
+                        <button class="btn-save" id="btnSaveSecurity">Save Security</button>
+                    </div>
+                    
+                    <div class="settings-card glass">
+                        <h3><i class="fas fa-database"></i> Data Management</h3>
+                        <div class="form-group">
+                            <label for="logRetention">Log Retention (days)</label>
+                            <input type="number" id="logRetention" value="30" min="1" max="365">
+                        </div>
+                        <button class="btn-danger" id="btnClearData">Clear All Data</button>
+                        <button class="btn-warning" id="btnExportData">Export Configuration</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Settings Modal (Quick Access) -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-cog"></i> Settings</h3>
+                    <h3><i class="fas fa-cog"></i> Quick Settings</h3>
                     <button class="btn-close" id="btnCloseModal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div class="setting-item">
-                        <label>MQTT Server</label>
-                        <input type="text" id="inputServer" value="wss://0562d333a1f84c1d8fa9a674afa05d6d.s1.eu.hivemq.cloud:8884/mqtt">
+                    <div class="modal-section">
+                        <h4>Connection</h4>
+                        <div class="form-group">
+                            <label>MQTT Status</label>
+                            <div class="status-badge" id="modalMqttStatus">Disconnected</div>
+                        </div>
+                        <button class="btn-small" id="btnReconnect">Reconnect</button>
                     </div>
-                    <div class="setting-item">
-                        <label>Username</label>
-                        <input type="text" id="inputUser" value="SMARTHOMEDB">
+                    
+                    <div class="modal-section">
+                        <h4>Quick Actions</h4>
+                        <button class="btn-small success" id="modalAllOn">All ON</button>
+                        <button class="btn-small destructive" id="modalAllOff">All OFF</button>
+                        <button class="btn-small primary" id="modalRefresh">Refresh Status</button>
                     </div>
-                    <div class="setting-item">
-                        <label>Password</label>
-                        <input type="password" id="inputPass" value="Aa1234567@">
+                    
+                    <div class="modal-section">
+                        <h4>Go to Page</h4>
+                        <div class="modal-links">
+                            <a href="#dashboard" class="modal-link">Dashboard</a>
+                            <a href="#controls" class="modal-link">Controls</a>
+                            <a href="#analytics" class="modal-link">Analytics</a>
+                            <a href="#settings" class="modal-link">Full Settings</a>
+                        </div>
                     </div>
-                    <button class="btn-save" id="btnSaveSettings">Save Settings</button>
                 </div>
             </div>
         </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast"></div>
     </div>
 
     <!-- Scripts -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="app.js"></script>
+    
+    <!-- Navigation & Settings Script -->
+    <script>
+        // Page Navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Navigation buttons
+            const navItems = document.querySelectorAll('.nav-item');
+            const pages = document.querySelectorAll('.page');
+            
+            // Set active page based on URL hash or default to dashboard
+            function setActivePage(pageId) {
+                // Update navigation
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.getAttribute('data-page') === pageId) {
+                        item.classList.add('active');
+                    }
+                });
+                
+                // Update pages
+                pages.forEach(page => {
+                    page.classList.remove('active');
+                    if (page.id === pageId + 'Page') {
+                        page.classList.add('active');
+                    }
+                });
+                
+                // Update page title
+                const pageTitles = {
+                    'dashboard': 'Smart Home Dashboard',
+                    'controls': 'Advanced Controls',
+                    'analytics': 'System Analytics',
+                    'settings': 'Settings'
+                };
+                
+                document.getElementById('pageTitle').textContent = pageTitles[pageId] || 'Dashboard';
+                document.getElementById('breadcrumb').textContent = 
+                    pageId.charAt(0).toUpperCase() + pageId.slice(1) + ' / ' + 
+                    (pageId === 'dashboard' ? 'All Relays' : 'Overview');
+                
+                // Save to URL
+                window.location.hash = pageId;
+            }
+            
+            // Navigation click handlers
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('data-page');
+                    setActivePage(pageId);
+                });
+            });
+            
+            // Handle URL hash changes
+            window.addEventListener('hashchange', function() {
+                const pageId = window.location.hash.substring(1) || 'dashboard';
+                setActivePage(pageId);
+            });
+            
+            // Initialize page
+            const initialPage = window.location.hash.substring(1) || 'dashboard';
+            setActivePage(initialPage);
+            
+            // Settings Modal
+            const settingsModal = document.getElementById('settingsModal');
+            const btnSettingsModal = document.getElementById('btnSettingsModal');
+            const btnCloseModal = document.getElementById('btnCloseModal');
+            const modalLinks = document.querySelectorAll('.modal-link');
+            
+            // Open modal
+            btnSettingsModal.addEventListener('click', function() {
+                settingsModal.style.display = 'flex';
+            });
+            
+            // Close modal
+            btnCloseModal.addEventListener('click', function() {
+                settingsModal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+            
+            // Modal links navigation
+            modalLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const pageId = this.getAttribute('href').substring(1);
+                    setActivePage(pageId);
+                    settingsModal.style.display = 'none';
+                });
+            });
+            
+            // Modal buttons
+            document.getElementById('modalAllOn').addEventListener('click', function() {
+                if (window.sendCommand) window.sendCommand('ALL_ON');
+            });
+            
+            document.getElementById('modalAllOff').addEventListener('click', function() {
+                if (window.sendCommand) window.sendCommand('ALL_OFF');
+            });
+            
+            document.getElementById('modalRefresh').addEventListener('click', function() {
+                if (window.sendCommand) window.sendCommand('STATUS');
+            });
+            
+            document.getElementById('btnReconnect').addEventListener('click', function() {
+                if (window.reconnectMQTT) window.reconnectMQTT();
+            });
+            
+            // Fullscreen button
+            document.getElementById('btnFullscreen').addEventListener('click', function() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Fullscreen error:', err);
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+            
+            // Update time display
+            function updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                document.getElementById('timeDisplay').textContent = timeString;
+            }
+            
+            setInterval(updateTime, 1000);
+            updateTime();
+            
+            // Settings form handlers
+            document.getElementById('btnSaveMQTT').addEventListener('click', function() {
+                const server = document.getElementById('mqttServer').value;
+                const username = document.getElementById('mqttUsername').value;
+                const password = document.getElementById('mqttPassword').value;
+                
+                // Save to localStorage
+                localStorage.setItem('mqttServer', server);
+                localStorage.setItem('mqttUsername', username);
+                localStorage.setItem('mqttPassword', password);
+                
+                showToast('MQTT settings saved. Reconnect to apply.');
+            });
+            
+            // Load saved settings
+            function loadSettings() {
+                const savedServer = localStorage.getItem('mqttServer');
+                const savedUser = localStorage.getItem('mqttUsername');
+                const savedPass = localStorage.getItem('mqttPassword');
+                
+                if (savedServer) document.getElementById('mqttServer').value = savedServer;
+                if (savedUser) document.getElementById('mqttUsername').value = savedUser;
+                if (savedPass) document.getElementById('mqttPassword').value = savedPass;
+            }
+            
+            loadSettings();
+            
+            // Toast function
+            window.showToast = function(message, type = 'info') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast ' + type;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            };
+        });
+    </script>
 </body>
 </html>
