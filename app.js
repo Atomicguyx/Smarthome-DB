@@ -177,7 +177,43 @@ function initializeDashboard() {
     // Force initial stats display
     setTimeout(updateStats, 100);
 }
+// Add this to your existing navigation script
 
+// Mobile menu toggle
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const sidebar = document.querySelector('.sidebar');
+
+if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.toggle('mobile-open');
+            this.innerHTML = sidebar.classList.contains('mobile-open') 
+                ? '<i class="fas fa-times"></i>' 
+                : '<i class="fas fa-bars"></i>';
+        }
+    });
+}
+
+// Close mobile menu when clicking a nav item
+navItems.forEach(item => {
+    item.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('mobile-open');
+            mobileMenuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+    });
+});
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(e) {
+    if (window.innerWidth <= 768 && 
+        !sidebar.contains(e.target) && 
+        !mobileMenuToggle.contains(e.target) &&
+        sidebar.classList.contains('mobile-open')) {
+        sidebar.classList.remove('mobile-open');
+        mobileMenuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+    }
+});
 // ✅ CREATE RELAY CARDS
 function createRelayCards() {
     if (!elements.relaysGrid) {
@@ -1199,4 +1235,5 @@ window.closeScheduleModal = closeScheduleModal;
 window.saveSchedule = saveSchedule;
 window.toggleSchedule = toggleSchedule;
 window.editSchedule = editSchedule;
+
 window.deleteSchedule = deleteSchedule;
