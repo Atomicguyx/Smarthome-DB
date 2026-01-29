@@ -1,10 +1,10 @@
 const CACHE_NAME = 'smart-home-v1';
 const urlsToCache = [
   '/',
-  'C:/Users/ABDULKAREEM/Desktop/PWA APP/index.html',
-  'C:/Users/ABDULKAREEM/Desktop/PWA APP/styles.css',
-  'C:/Users/ABDULKAREEM/Desktop/PWA APP/app.js',
-  'C:/Users/ABDULKAREEM/Desktop/PWA APP/manifest.json',
+  'index.html',
+  'styles.css',
+  'app.js',
+  'manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap',
   'https://unpkg.com/mqtt/dist/mqtt.min.js'
@@ -46,4 +46,5 @@ self.addEventListener('activate', event => {
       );
     })
   );
+
 });
