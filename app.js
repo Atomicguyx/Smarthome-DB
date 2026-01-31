@@ -1,4 +1,4 @@
-// MQTT Configuration
+// ✅ MQTT Configuration (Enhanced for mobile)
 const MQTT_CONFIG = {
     server: 'wss://0562d333a1f84c1d8fa9a674afa05d6d.s1.eu.hivemq.cloud:8884/mqtt',
     username: 'SMARTHOMEDB',
@@ -7,7 +7,26 @@ const MQTT_CONFIG = {
         control: 'smarthome/control',
         status: 'smarthome/status'
     },
-    clientId: 'smart-home-dashboard-' + Math.random().toString(16).slice(2, 8)
+    clientId: 'smart-home-dashboard-' + Math.random().toString(16).slice(2, 8) + '-' + Date.now(),
+    keepalive: 30,
+    reconnectPeriod: 5000,
+    connectTimeout: 10000,
+    clean: true,
+    protocolVersion: 4, // MQTT v3.1.1
+    resubscribe: true,
+    queueQoSZero: false
+};
+
+// Connection state tracking
+let connectionState = {
+    isConnected: false,
+    connectionAttempts: 0,
+    maxAttempts: 10,
+    lastConnectTime: 0,
+    reconnectDelay: 1000,
+    pingInterval: null,
+    autoReconnect: true,
+    isReconnecting: false
 };
 
 // Relay Definitions (16 relays matching your ESP32)
@@ -396,72 +415,562 @@ function publishMessage(topic, message) {
 }
 
 // ✅ MQTT CONNECTION
+// ✅ NETWORK STATE DETECTION
+function setupNetworkDetection() {
+    // Online/Offline detection
+    window.addEventListener('online', () => {
+        console.log('🌐 Device is back online');
+        showToast('Back online', 'success');
+        
+        // Try to reconnect if we're disconnected
+        if (!connectionState.isConnected && connectionState.autoReconnect) {
+            setTimeout(() => {
+                console.log('🔄 Attempting reconnect after coming online...');
+                connectMQTT();
+            }, 2000);
+        }
+    });
+    
+    window.addEventListener('offline', () => {
+        console.log('🌐 Device is offline');
+        showToast('You are offline', 'error');
+        updateConnectionStatus('Offline', 'error');
+        
+        // Stop trying to reconnect while offline
+        connectionState.autoReconnect = false;
+    });
+    
+    // Check network quality
+    if ('connection' in navigator) {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        
+        if (connection) {
+            connection.addEventListener('change', () => {
+                console.log('📶 Network connection changed:', {
+                    effectiveType: connection.effectiveType,
+                    downlink: connection.downlink,
+                    rtt: connection.rtt,
+                    saveData: connection.saveData
+                });
+                
+                // Adjust MQTT settings based on network
+                adjustMQTTForNetwork(connection);
+            });
+            
+            // Initial adjustment
+            adjustMQTTForNetwork(connection);
+        }
+    }
+}
+
+// ✅ ADJUST MQTT FOR NETWORK CONDITIONS
+function adjustMQTTForNetwork(connection) {
+    if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+        console.log('📶 Slow network detected, adjusting MQTT settings');
+        
+        // Reduce keepalive and increase timeout for slow networks
+        MQTT_CONFIG.keepalive = 60;
+        MQTT_CONFIG.connectTimeout = 15000;
+        
+        // Reduce ping frequency
+        if (connectionState.pingInterval) {
+            clearInterval(connectionState.pingInterval);
+            connectionState.pingInterval = setInterval(() => {
+                if (mqttClient && mqttClient.connected) {
+                    mqttClient.publish('$SYS/ping', 'ping', { qos: 0 });
+                }
+            }, 30000); // Every 30 seconds on slow networks
+        }
+        
+    } else if (connection.effectiveType === '4g' || connection.saveData) {
+        console.log('📶 Good network with possible data saving');
+        
+        // Normal settings but with data saving awareness
+        MQTT_CONFIG.keepalive = 30;
+        MQTT_CONFIG.connectTimeout = 10000;
+    }
+}
+
+// ✅ UPDATE INITIALIZATION
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded, starting dashboard...");
+    
+    // Setup network detection first
+    setupNetworkDetection();
+    
+    // Setup responsive behavior
+    setupResponsiveBehavior();
+    
+    // Initialize dashboard
+    initializeDashboard();
+    
+    // Initialize schedules
+    setTimeout(initializeSchedules, 500);
+    
+    // Setup event listeners
+    setTimeout(setupEventListeners, 1000);
+    
+    // Connect to MQTT with a delay
+    setTimeout(() => {
+        console.log('⏳ Initializing MQTT connection...');
+        connectMQTT();
+    }, 1500);
+    
+    // Update uptime every second
+    setInterval(updateUptime, 1000);
+});
+// ✅ CONNECTION CONTROLS
+function setupConnectionControls() {
+    // Update connection attempts display
+    const connectionAttemptsElement = document.getElementById('connectionAttempts');
+    if (connectionAttemptsElement) {
+        setInterval(() => {
+            connectionAttemptsElement.textContent = connectionState.connectionAttempts;
+        }, 1000);
+    }
+    
+    // Update network quality display
+    if ('connection' in navigator) {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        
+        if (connection) {
+            const networkQualityElement = document.getElementById('networkQuality');
+            const qualityLevelElement = document.getElementById('qualityLevel');
+            
+            function updateNetworkQuality() {
+                let quality = 100;
+                let text = 'Network: Excellent';
+                
+                if (connection.effectiveType === 'slow-2g') {
+                    quality = 20;
+                    text = 'Network: Slow 2G';
+                } else if (connection.effectiveType === '2g') {
+                    quality = 40;
+                    text = 'Network: 2G';
+                } else if (connection.effectiveType === '3g') {
+                    quality = 60;
+                    text = 'Network: 3G';
+                } else if (connection.effectiveType === '4g') {
+                    quality = 80;
+                    text = 'Network: 4G';
+                }
+                
+                if (connection.rtt > 300) {
+                    quality -= 20;
+                    text += ' (High Latency)';
+                }
+                
+                if (networkQualityElement) {
+                    networkQualityElement.textContent = text;
+                }
+                
+                if (qualityLevelElement) {
+                    qualityLevelElement.style.width = `${quality}%`;
+                    qualityLevelElement.style.backgroundColor = quality > 70 ? 'hsl(var(--success))' : 
+                                                               quality > 40 ? 'hsl(var(--warning))' : 
+                                                               'hsl(var(--destructive))';
+                }
+            }
+            
+            connection.addEventListener('change', updateNetworkQuality);
+            updateNetworkQuality();
+        }
+    }
+}
+
+// ✅ ENHANCED UPDATE CONNECTION STATUS
+function updateConnectionStatus(text, status) {
+    if (!elements.statusText || !elements.connectionDetails) return;
+    
+    elements.statusText.textContent = text;
+    elements.connectionDetails.textContent = text;
+    
+    if (elements.statusDot) {
+        elements.statusDot.className = 'status-dot';
+        if (status === 'connected') {
+            elements.statusDot.classList.add('connected');
+        } else if (status === 'connecting') {
+            elements.statusDot.classList.add('connecting');
+        } else if (status === 'error') {
+            elements.statusDot.classList.add('error');
+        } else {
+            elements.statusDot.classList.add('disconnected');
+        }
+    }
+    
+    // Update modal status
+    const modalStatus = document.getElementById('modalMqttStatus');
+    if (modalStatus) {
+        modalStatus.textContent = text;
+        modalStatus.className = `status-badge ${status}`;
+    }
+}
+
+// ✅ UPDATE INITIALIZATION WITH CONTROLS
+function initializeDashboard() {
+    console.log("Initializing dashboard...");
+    
+    // Initialize elements
+    elements = {
+        statusDot: document.getElementById('statusDot'),
+        statusText: document.getElementById('statusText'),
+        relaysGrid: document.getElementById('relaysGrid'),
+        statOn: document.getElementById('statOn'),
+        statOff: document.getElementById('statOff'),
+        statTotal: document.getElementById('statTotal'),
+        deviceStats: document.getElementById('deviceStats'),
+        connectionDetails: document.getElementById('connectionDetails'),
+        uptime: document.getElementById('uptime'),
+        messageCount: document.getElementById('messageCount'),
+        activityLog: document.getElementById('activityLog'),
+        toast: document.getElementById('toast')
+    };
+
+    // Setup connection controls
+    setupConnectionControls();
+    
+    // Create relay cards
+    createRelayCards();
+    
+    // Initialize stats with current relay states
+    updateStats();
+    
+    // Load saved presets
+    loadSavedPresets();
+    
+    // Setup preset buttons if on controls page
+    if (document.querySelector('.presets-grid')) {
+        setupPresetButtons();
+        updatePresetsUI();
+    }
+    
+    // Initialize analytics if on analytics page
+    if (document.getElementById('analyticsPage').classList.contains('active')) {
+        initializeAnalytics();
+    }
+    
+    // Initialize settings if on settings page
+    if (document.getElementById('settingsPage').classList.contains('active')) {
+        initializeSettings();
+    }
+    
+    logMessage('🚀 Dashboard initialized');
+    console.log("✅ Dashboard initialized successfully");
+    
+    // Force initial stats display
+    setTimeout(updateStats, 100);
+}
+// ✅ MANUAL CONNECTION CONTROLS
+function setupManualConnectionControls() {
+    // Reconnect button
+    document.getElementById('modalReconnect').addEventListener('click', function() {
+        console.log('🔄 Manual reconnect requested from modal');
+        connectionState.connectionAttempts = 0;
+        connectionState.autoReconnect = true;
+        
+        if (mqttClient) {
+            mqttClient.end(true);
+        }
+        
+        setTimeout(() => {
+            connectMQTT();
+            showToast('Reconnecting...', 'info');
+        }, 500);
+    });
+    
+    // Disconnect button
+    document.getElementById('modalDisconnect').addEventListener('click', function() {
+        console.log('🔌 Manual disconnect requested');
+        connectionState.autoReconnect = false;
+        
+        if (mqttClient && mqttClient.connected) {
+            mqttClient.end();
+            showToast('Disconnected', 'info');
+        }
+    });
+}
+
+// Add this to your initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
+    
+    // Setup manual connection controls
+    setupManualConnectionControls();
+});
+// ✅ MQTT CONNECTION (Enhanced for mobile stability)
 function connectMQTT() {
+    if (connectionState.isReconnecting) {
+        console.log('⚠️ Already reconnecting, skipping...');
+        return;
+    }
+    
+    if (connectionState.connectionAttempts >= connectionState.maxAttempts) {
+        console.error('❌ Max connection attempts reached');
+        showToast('Connection failed after multiple attempts', 'error');
+        connectionState.autoReconnect = false;
+        return;
+    }
+    
     updateConnectionStatus('Connecting...', 'connecting');
+    connectionState.connectionAttempts++;
+    connectionState.isReconnecting = true;
+    
+    console.log(`🔄 Connection attempt ${connectionState.connectionAttempts}/${connectionState.maxAttempts}`);
+    
+    // Clean up existing connection if any
+    if (mqttClient) {
+        try {
+            mqttClient.end(true); // Force disconnect
+            mqttClient = null;
+        } catch (e) {
+            console.warn('Error cleaning up old connection:', e);
+        }
+    }
     
     const options = {
         username: MQTT_CONFIG.username,
         password: MQTT_CONFIG.password,
         clientId: MQTT_CONFIG.clientId,
-        clean: true,
-        reconnectPeriod: 3000,
-        connectTimeout: 10000,
-        keepalive: 60
+        clean: MQTT_CONFIG.clean,
+        reconnectPeriod: 0, // We'll handle reconnection manually
+        connectTimeout: MQTT_CONFIG.connectTimeout,
+        keepalive: MQTT_CONFIG.keepalive,
+        protocolVersion: MQTT_CONFIG.protocolVersion,
+        resubscribe: MQTT_CONFIG.resubscribe,
+        queueQoSZero: MQTT_CONFIG.queueQoSZero,
+        rejectUnauthorized: false // Allow self-signed certificates
     };
     
     try {
+        console.log('🔗 Creating MQTT connection...');
         mqttClient = mqtt.connect(MQTT_CONFIG.server, options);
         
-        mqttClient.on('connect', () => {
-            isConnected = true;
-            updateConnectionStatus('Connected', 'connected');
-            showToast('✅ Connected to HiveMQ Cloud', 'success');
-            logMessage('✅ Connected to HiveMQ Cloud');
-            
-            mqttClient.subscribe(MQTT_CONFIG.topics.status, { qos: 1 }, (err) => {
-                if (!err) {
-                    logMessage(`📡 Subscribed to: ${MQTT_CONFIG.topics.status}`);
-                    setTimeout(requestStatus, 1000);
-                }
-            });
-        });
-        
-        mqttClient.on('message', (topic, message) => {
-            console.log(`📨 [MQTT IN] ${topic}: ${message.toString()}`);
-            handleMQTTMessage(topic, message.toString());
-        });
-        
-        mqttClient.on('error', (error) => {
-            console.error('❌ MQTT Error:', error);
-            updateConnectionStatus('Error', 'error');
-            showToast(`Connection error: ${error.message}`, 'error');
-            logMessage(`❌ MQTT Error: ${error.message}`);
-        });
-        
-        mqttClient.on('reconnect', () => {
-            updateConnectionStatus('Reconnecting...', 'connecting');
-            logMessage('🔄 Reconnecting to MQTT...');
-        });
-        
-        mqttClient.on('close', () => {
-            isConnected = false;
-            updateConnectionStatus('Disconnected', 'error');
-            logMessage('⚠️ Disconnected from MQTT');
-        });
-        
-        mqttClient.on('offline', () => {
-            isConnected = false;
-            updateConnectionStatus('Offline', 'error');
-            logMessage('📴 MQTT Offline');
-        });
+        setupMQTTEventHandlers();
         
     } catch (error) {
-        console.error('❌ Connection error:', error);
-        updateConnectionStatus('Failed', 'error');
-        showToast(`Connection failed: ${error.message}`, 'error');
-        logMessage(`❌ Connection error: ${error.message}`);
+        console.error('❌ Connection setup error:', error);
+        updateConnectionStatus('Connection failed', 'error');
+        showToast(`Connection error: ${error.message}`, 'error');
+        scheduleReconnect();
     }
 }
+
+// ✅ SETUP MQTT EVENT HANDLERS
+function setupMQTTEventHandlers() {
+    if (!mqttClient) return;
+    
+    // Connection successful
+    mqttClient.on('connect', () => {
+        console.log('✅ MQTT Connected successfully');
+        connectionState.isConnected = true;
+        connectionState.isReconnecting = false;
+        connectionState.connectionAttempts = 0;
+        connectionState.lastConnectTime = Date.now();
+        
+        updateConnectionStatus('Connected', 'connected');
+        showToast('✅ Connected to HiveMQ Cloud', 'success');
+        logMessage('✅ Connected to HiveMQ Cloud');
+        
+        // Subscribe to status topic
+        mqttClient.subscribe(MQTT_CONFIG.topics.status, { qos: 1 }, (err) => {
+            if (err) {
+                console.error('❌ Subscription error:', err);
+                logMessage(`❌ Failed to subscribe: ${err.message}`);
+            } else {
+                console.log(`📡 Subscribed to: ${MQTT_CONFIG.topics.status}`);
+                logMessage(`📡 Subscribed to: ${MQTT_CONFIG.topics.status}`);
+                
+                // Wait a moment before requesting status
+                setTimeout(() => {
+                    console.log('📊 Requesting initial status...');
+                    requestStatus();
+                }, 1000);
+            }
+        });
+        
+        // Start ping interval to keep connection alive
+        startPingInterval();
+    });
+    
+    // Message received
+    mqttClient.on('message', (topic, message) => {
+        const messageStr = message.toString();
+        console.log(`📨 [MQTT IN] ${topic}: ${messageStr}`);
+        messageCount++;
+        updateMessageCount();
+        
+        // Log the message
+        logMessage(`📨 [${topic}]: ${messageStr}`);
+        
+        // Handle different topics
+        if (topic === MQTT_CONFIG.topics.status) {
+            handleMQTTMessage(topic, messageStr);
+        } else {
+            console.log(`📨 Received message on unknown topic: ${topic}`);
+        }
+    });
+    
+    // Error handling
+    mqttClient.on('error', (error) => {
+        console.error('❌ MQTT Error:', error);
+        updateConnectionStatus('Error', 'error');
+        showToast(`Connection error: ${error.message}`, 'error');
+        logMessage(`❌ MQTT Error: ${error.message}`);
+        
+        if (!connectionState.isReconnecting) {
+            scheduleReconnect();
+        }
+    });
+    
+    // Disconnected
+    mqttClient.on('close', () => {
+        console.log('🔌 MQTT Connection closed');
+        connectionState.isConnected = false;
+        updateConnectionStatus('Disconnected', 'error');
+        logMessage('🔌 Disconnected from MQTT');
+        
+        stopPingInterval();
+        
+        if (connectionState.autoReconnect && !connectionState.isReconnecting) {
+            scheduleReconnect();
+        }
+    });
+    
+    // Offline
+    mqttClient.on('offline', () => {
+        console.log('📴 MQTT Offline');
+        connectionState.isConnected = false;
+        updateConnectionStatus('Offline', 'error');
+        logMessage('📴 MQTT Offline');
+    });
+    
+    // Reconnect
+    mqttClient.on('reconnect', () => {
+        console.log('🔄 MQTT Reconnecting...');
+        updateConnectionStatus('Reconnecting...', 'connecting');
+        logMessage('🔄 Reconnecting to MQTT...');
+    });
+    
+    // End (clean disconnect)
+    mqttClient.on('end', () => {
+        console.log('🏁 MQTT Connection ended');
+        connectionState.isConnected = false;
+        stopPingInterval();
+    });
+}
+
+// ✅ SCHEDULE RECONNECT
+function scheduleReconnect() {
+    if (!connectionState.autoReconnect || connectionState.isReconnecting) {
+        return;
+    }
+    
+    connectionState.isReconnecting = true;
+    
+    // Exponential backoff
+    const delay = Math.min(connectionState.reconnectDelay * Math.pow(1.5, connectionState.connectionAttempts - 1), 30000);
+    
+    console.log(`⏳ Scheduling reconnect in ${delay}ms...`);
+    
+    setTimeout(() => {
+        console.log('🔄 Attempting reconnect...');
+        connectionState.isReconnecting = false;
+        connectMQTT();
+    }, delay);
+}
+
+// ✅ PING INTERVAL FOR CONNECTION KEEP-ALIVE
+function startPingInterval() {
+    stopPingInterval(); // Clear any existing interval
+    
+    connectionState.pingInterval = setInterval(() => {
+        if (mqttClient && mqttClient.connected) {
+            // Send a ping/publish to keep connection alive
+            try {
+                mqttClient.publish('$SYS/ping', 'ping', { qos: 0, retain: false }, (err) => {
+                    if (err) {
+                        console.warn('Ping publish error:', err);
+                    }
+                });
+            } catch (e) {
+                console.warn('Ping error:', e);
+            }
+        }
+    }, 15000); // Every 15 seconds
+}
+
+function stopPingInterval() {
+    if (connectionState.pingInterval) {
+        clearInterval(connectionState.pingInterval);
+        connectionState.pingInterval = null;
+    }
+}
+
+// ✅ IMPROVED PUBLISH FUNCTION
+function publishMessage(topic, message) {
+    if (!mqttClient || !mqttClient.connected) {
+        console.warn('⚠️ Cannot publish: MQTT not connected');
+        showToast('Not connected to MQTT', 'error');
+        updateConnectionStatus('Disconnected', 'error');
+        
+        // Try to reconnect if autoReconnect is enabled
+        if (connectionState.autoReconnect && !connectionState.isReconnecting) {
+            console.log('Attempting to reconnect for publish...');
+            connectMQTT();
+        }
+        
+        return false;
+    }
+    
+    console.log(`📤 [MQTT OUT] ${topic}: ${message}`);
+    
+    return new Promise((resolve, reject) => {
+        mqttClient.publish(topic, message, { qos: 1, retain: false }, (error) => {
+            if (error) {
+                console.error('❌ MQTT Publish Error:', error);
+                showToast(`Failed to send: ${error.message}`, 'error');
+                reject(error);
+                
+                // Check if we need to reconnect
+                if (error.code === 'ECONNREFUSED' || error.message.includes('not connected')) {
+                    scheduleReconnect();
+                }
+            } else {
+                console.log(`✅ MQTT Published: ${message}`);
+                logMessage(`📤 [${topic}]: ${message}`);
+                messageCount++;
+                updateMessageCount();
+                resolve(true);
+            }
+        });
+    });
+}
+
+// ✅ IMPROVED REQUEST STATUS FUNCTION
+function requestStatus() {
+    console.log('📊 Requesting status update...');
+    
+    publishMessage(MQTT_CONFIG.topics.control, 'STATUS')
+        .then(() => {
+            console.log('✅ Status request sent successfully');
+        })
+        .catch(error => {
+            console.error('❌ Failed to send status request:', error);
+        });
+}
+
+// ✅ UPDATE RECONNECT FUNCTION
+window.reconnectMQTT = function() {
+    console.log('🔄 Manual reconnect requested');
+    connectionState.connectionAttempts = 0;
+    connectionState.autoReconnect = true;
+    
+    if (mqttClient) {
+        mqttClient.end(true);
+    }
+    
+    setTimeout(connectMQTT, 500);
+};
 
 // ✅ MESSAGE HANDLER - FIXED! This is where the bug was
 function handleMQTTMessage(topic, message) {
@@ -1391,3 +1900,4 @@ window.saveSchedule = saveSchedule;
 window.toggleSchedule = toggleSchedule;
 window.editSchedule = editSchedule;
 window.deleteSchedule = deleteSchedule;
+
