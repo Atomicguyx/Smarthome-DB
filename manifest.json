@@ -1,34 +1,37 @@
 {
   "name": "Atomic Smart DB",
   "short_name": "AtomicDB",
-  "description": "Modern dashboard for 16-relay ESP32 smart home controller",
+  "description": "Smart Home Relay Control Dashboard",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "hsl(222 47% 6%)",
-  "theme_color": "hsl(222 47% 6%)",
-  "orientation": "portrait",
+  "background_color": "#0A0C10",
+  "theme_color": "#0A0C10",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
   "icons": [
     {
-      "src": "IMG-20250608-WA0028 (2).jpg",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "IMG-20250608-WA0028.jpg",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "categories": [
-    "productivity",
-    "utilities"
-  ],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "IMG-20250608-WA0028.jpg",
-      "sizes": "1280x720",
-      "type": "image/png"
+      "name": "Dashboard",
+      "url": "/#dashboard",
+      "description": "Open Dashboard"
+    },
+    {
+      "name": "Controls",
+      "url": "/#controls",
+      "description": "Open Controls"
     }
   ]
 }
-
