@@ -177,43 +177,7 @@ function initializeDashboard() {
     // Force initial stats display
     setTimeout(updateStats, 100);
 }
-// Add this to your existing navigation script
 
-// Mobile menu toggle
-const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-const sidebar = document.querySelector('.sidebar');
-
-if (mobileMenuToggle) {
-    mobileMenuToggle.addEventListener('click', function() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.toggle('mobile-open');
-            this.innerHTML = sidebar.classList.contains('mobile-open') 
-                ? '<i class="fas fa-times"></i>' 
-                : '<i class="fas fa-bars"></i>';
-        }
-    });
-}
-
-// Close mobile menu when clicking a nav item
-navItems.forEach(item => {
-    item.addEventListener('click', function() {
-        if (window.innerWidth <= 768) {
-            sidebar.classList.remove('mobile-open');
-            mobileMenuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-        }
-    });
-});
-
-// Close mobile menu when clicking outside
-document.addEventListener('click', function(e) {
-    if (window.innerWidth <= 768 && 
-        !sidebar.contains(e.target) && 
-        !mobileMenuToggle.contains(e.target) &&
-        sidebar.classList.contains('mobile-open')) {
-        sidebar.classList.remove('mobile-open');
-        mobileMenuToggle.innerHTML = '<i class="fas fa-bars"></i>';
-    }
-});
 // ✅ CREATE RELAY CARDS
 function createRelayCards() {
     if (!elements.relaysGrid) {
@@ -581,7 +545,198 @@ function handleMQTTMessage(topic, message) {
         }
     }
 }
+// ✅ RESPONSIVE FUNCTIONS
+function setupResponsiveBehavior() {
+  // Mobile menu toggle
+  const menuToggle = document.createElement('button');
+  menuToggle.id = 'menuToggle';
+  menuToggle.className = 'menu-toggle';
+  menuToggle.innerHTML = '<i class="fas fa-bars"></i>';
+  document.body.appendChild(menuToggle);
+  
+  const sidebar = document.querySelector('.sidebar');
+  
+  menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+  });
+  
+  // Close sidebar when clicking outside on mobile
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 1024) {
+      if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    }
+  });
+  
+  // Adjust grid columns based on screen size
+  function adjustGridColumns() {
+    const relaysGrid = document.getElementById('relaysGrid');
+    const advancedGrid = document.getElementById('advancedControlsGrid');
+    const presetsGrid = document.querySelector('.presets-grid');
+    
+    if (!relaysGrid || !advancedGrid || !presetsGrid) return;
+    
+    const width = window.innerWidth;
+    
+    if (width <= 480) {
+      relaysGrid.style.gridTemplateColumns = '1fr';
+      if (advancedGrid) advancedGrid.style.gridTemplateColumns = '1fr';
+      presetsGrid.style.gridTemplateColumns = '1fr';
+    } else if (width <= 767) {
+      relaysGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      if (advancedGrid) advancedGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      presetsGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    } else if (width <= 1024) {
+      relaysGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(280px, 1fr))';
+      if (advancedGrid) advancedGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+      presetsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+    } else {
+      relaysGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(300px, 1fr))';
+      if (advancedGrid) advancedGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+      presetsGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
+    }
+  }
+  
+  // Initial adjustment
+  adjustGridColumns();
+  
+  // Adjust on resize
+  window.addEventListener('resize', adjustGridColumns);
+  
+  // Touch gestures for mobile
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  
+  document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  });
+  
+  function handleSwipe() {
+    const swipeThreshold = 50;
+    const swipeDistance = touchEndX - touchStartX;
+    
+    if (Math.abs(swipeDistance) > swipeThreshold) {
+      if (swipeDistance > 0 && window.innerWidth <= 1024) {
+        // Swipe right - open sidebar
+        sidebar.classList.add('active');
+      } else if (swipeDistance < 0 && window.innerWidth <= 1024) {
+        // Swipe left - close sidebar
+        sidebar.classList.remove('active');
+      }
+    }
+  }
+  
+  // Optimize for mobile performance
+  if ('connection' in navigator) {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    
+    if (connection) {
+      if (connection.saveData || connection.effectiveType.includes('2g')) {
+        // Data saver mode or slow connection
+        console.log('Slow connection detected, optimizing for mobile...');
+        // Disable heavy animations
+        document.documentElement.style.setProperty('--glow-primary', 'none');
+        document.documentElement.style.setProperty('--glow-success', 'none');
+        document.documentElement.style.setProperty('--glow-warning', 'none');
+      }
+    }
+  }
+}
 
+// ✅ UPDATE INITIALIZATION
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM fully loaded, starting dashboard...");
+  
+  // Setup responsive behavior first
+  setupResponsiveBehavior();
+  
+  // Initialize dashboard
+  initializeDashboard();
+  
+  // Initialize schedules
+  setTimeout(initializeSchedules, 500);
+  
+  // Connect to MQTT
+  setTimeout(connectMQTT, 500);
+  
+  // Setup event listeners
+  setTimeout(setupEventListeners, 1000);
+  
+  // Update uptime every second
+  setInterval(updateUptime, 1000);
+  
+  // Keep connection alive
+  setInterval(() => {
+    if (isConnected && mqttClient) {
+      mqttClient.publish('$SYS/keepalive', 'ping', { qos: 0 });
+    }
+  }, 30000);
+  
+  // Check if PWA is running in standalone mode
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('Running as PWA');
+    // Hide browser UI elements if any
+  }
+});
+// ✅ PWA UTILITIES
+function checkPWAInstallable() {
+  // Check if PWA is already installed
+  if (window.matchMedia('(display-mode: standalone)').matches || 
+      window.navigator.standalone === true) {
+    console.log('App is running in standalone mode');
+    return false;
+  }
+  return true;
+}
+
+function showInstallPrompt() {
+  if (deferredPrompt && checkPWAInstallable()) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        showToast('App installed successfully!', 'success');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      deferredPrompt = null;
+    });
+  }
+}
+
+// Check network status
+function checkNetworkStatus() {
+  if (!navigator.onLine) {
+    showToast('You are offline. Some features may be limited.', 'warning');
+    return false;
+  }
+  return true;
+}
+
+// Request notification permission
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission().then(permission => {
+      console.log('Notification permission:', permission);
+    });
+  }
+}
+
+// Send PWA notification
+function sendNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: 'icon-192.png'
+    });
+  }
+}
 // ✅ PRESET FUNCTIONS
 function applyPreset(presetId) {
     const preset = PRESET_MODES[presetId];
@@ -1235,5 +1390,4 @@ window.closeScheduleModal = closeScheduleModal;
 window.saveSchedule = saveSchedule;
 window.toggleSchedule = toggleSchedule;
 window.editSchedule = editSchedule;
-
 window.deleteSchedule = deleteSchedule;
